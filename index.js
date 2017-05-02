@@ -24,17 +24,23 @@ var BugsnagSourceMapPlugin = function () {
   function BugsnagSourceMapPlugin(_ref) {
     var apiKey = _ref.apiKey,
         publicPath = _ref.publicPath,
+        _ref$appVersion = _ref.appVersion,
+        appVersion = _ref$appVersion === undefined ? null : _ref$appVersion,
         _ref$silent = _ref.silent,
         silent = _ref$silent === undefined ? false : _ref$silent,
         _ref$overwrite = _ref.overwrite,
-        overwrite = _ref$overwrite === undefined ? false : _ref$overwrite;
+        overwrite = _ref$overwrite === undefined ? false : _ref$overwrite,
+        _ref$uploadSource = _ref.uploadSource,
+        uploadSource = _ref$uploadSource === undefined ? false : _ref$uploadSource;
 
     _classCallCheck(this, BugsnagSourceMapPlugin);
 
     this.apiKey = apiKey;
     this.publicPath = publicPath;
+    this.appVersion = appVersion;
     this.silent = silent;
     this.overwrite = overwrite;
+    this.uploadSource = uploadSource;
   }
 
   _createClass(BugsnagSourceMapPlugin, [{
@@ -85,6 +91,7 @@ var BugsnagSourceMapPlugin = function () {
 
       var minifiedUrl = this.publicPath + '/' + sourceFile;
       var sourceMapPath = compilation.assets[sourceMap].existsAt;
+      var sourceFilePath = compilation.assets[sourceFile].existsAt;
       var options = {
         apiKey: this.apiKey,
         minifiedUrl: minifiedUrl
@@ -93,8 +100,17 @@ var BugsnagSourceMapPlugin = function () {
       if (this.overwrite === true) {
         options.overwrite = true;
       }
+      if (this.appVersion !== null) {
+        options.appVersion = this.appVersion;
+      }
 
-      _superagent2.default.post(BUGSNAG_ENDPOINT).field(options).attach('sourceMap', sourceMapPath).end(function (err) {
+      var request = _superagent2.default.post(BUGSNAG_ENDPOINT).field(options).attach('sourceMap', sourceMapPath);
+
+      if (this.uploadSource === true) {
+        request.attach('minifiedFile', sourceFilePath);
+      }
+
+      request.end(function (err) {
         if (err) {
           if (!_this3.silent) {
             if (err.response && err.response.text) {
